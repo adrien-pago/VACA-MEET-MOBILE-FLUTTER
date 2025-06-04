@@ -1,0 +1,135 @@
+.background-effects {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.particles-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.gradient-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.background-blur {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  opacity: 0.1;
+}
+
+/* Variantes de couleurs */
+.background-purple .gradient-overlay {
+  background: radial-gradient(
+    circle at 10% 20%,
+    rgba(108, 99, 255, 0.25) 0%,
+    rgba(136, 87, 255, 0.08) 90%
+  );
+}
+
+.background-blue .gradient-overlay {
+  background: radial-gradient(
+    circle at 10% 20%,
+    rgba(66, 133, 244, 0.25) 0%,
+    rgba(66, 193, 244, 0.08) 90%
+  );
+}
+
+.background-green .gradient-overlay {
+  background: radial-gradient(
+    circle at 10% 20%,
+    rgba(39, 174, 96, 0.25) 0%,
+    rgba(111, 207, 151, 0.08) 90%
+  );
+}
+
+.background-minimal .gradient-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(250, 250, 250, 0.95) 0%,
+    rgba(245, 245, 245, 0.9) 100%
+  );
+}
+
+.background-gradient .gradient-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(108, 99, 255, 0.25) 0%,
+    rgba(255, 101, 132, 0.18) 100%
+  );
+}
+
+/* Animation d'arrière-plan avec mode sombre */
+@media (prefers-color-scheme: dark) {
+  .background-effects::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle,
+      rgba(30, 30, 30, 0.65) 0%,
+      rgba(10, 10, 10, 0.75) 70%
+    );
+    z-index: -2;
+  }
+  
+  .background-purple .gradient-overlay {
+    background: radial-gradient(
+      circle at 10% 20%,
+      rgba(108, 99, 255, 0.2) 0%,
+      rgba(136, 87, 255, 0.05) 90%
+    );
+  }
+  
+  .background-blue .gradient-overlay {
+    background: radial-gradient(
+      circle at 10% 20%,
+      rgba(66, 133, 244, 0.2) 0%,
+      rgba(66, 193, 244, 0.05) 90%
+    );
+  }
+  
+  .background-green .gradient-overlay {
+    background: radial-gradient(
+      circle at 10% 20%,
+      rgba(39, 174, 96, 0.2) 0%,
+      rgba(111, 207, 151, 0.05) 90%
+    );
+  }
+  
+  .background-minimal .gradient-overlay {
+    background: linear-gradient(
+      135deg,
+      rgba(30, 30, 30, 0.95) 0%,
+      rgba(25, 25, 25, 0.9) 100%
+    );
+  }
+  
+  .background-gradient .gradient-overlay {
+    background: linear-gradient(
+      135deg,
+      rgba(108, 99, 255, 0.2) 0%,
+      rgba(255, 101, 132, 0.15) 100%
+    );
+  }
+} 

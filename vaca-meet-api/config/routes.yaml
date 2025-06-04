@@ -1,0 +1,20 @@
+controllers:
+    resource:
+        path: ../src/Controller/
+        namespace: App\Controller
+    type: attribute
+
+api_login:
+    path: /api/login
+    controller: App\Controller\MobileAuthController::login
+    methods: ['POST']
+
+api_register:
+    path: /api/register
+    controller: App\Controller\MobileAuthController::register
+    methods: ['POST']
+
+api_user:
+    path: /api/user
+    controller: App\Controller\MobileAuthController::userProfile
+    methods: ['GET'] 
