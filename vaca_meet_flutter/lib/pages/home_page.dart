@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'home_camping_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -116,8 +117,15 @@ class _HomePageState extends State<HomePage> {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['valid'] == true) {
-        setState(() { _toastMessage = 'Accès autorisé !'; });
-        // Navigator.pushNamed(context, '/camping/${_selectedDestinationId}');
+        setState(() { _toastMessage = null; });
+        if (mounted && _selectedDestinationId != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeCampingPage(campingId: _selectedDestinationId!),
+            ),
+          );
+        }
       } else {
         setState(() { _passwordError = data['message'] ?? 'Mot de passe incorrect'; });
       }
