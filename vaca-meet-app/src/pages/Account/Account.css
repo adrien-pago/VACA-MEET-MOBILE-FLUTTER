@@ -1,0 +1,515 @@
+/* Styles spécifiques à la page Compte */
+.account-content {
+  --padding-top: 1rem;
+  --padding-bottom: 3rem;
+  --background: transparent;
+}
+
+/* Alignement de la toolbar avec le contenu */
+.aligned-toolbar {
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.aligned-buttons {
+  margin-left: 16px;
+}
+
+@media (min-width: 768px) {
+  .aligned-buttons {
+    margin-left: calc((100% - 768px) / 2 + 16px);
+  }
+}
+
+@media (min-width: 992px) {
+  .aligned-buttons {
+    margin-left: calc((100% - 992px) / 2 + 16px);
+  }
+}
+
+/* Style pour le bouton de retour personnalisé */
+.custom-back-button {
+  --color: var(--ion-color-primary);
+  --padding-start: 0.4rem;
+  --padding-end: 0.75rem;
+  font-weight: 500;
+  font-size: 0.85rem;
+  position: relative;
+  overflow: visible;
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.3);
+  border-radius: 16px;
+  transition: all 0.2s ease;
+  height: 32px;
+  max-height: 32px;
+  margin-left: 0;
+  --background: rgba(var(--ion-color-primary-rgb), 0.08);
+}
+
+.custom-back-button::before {
+  display: none;
+}
+
+.custom-back-button:hover {
+  --background: rgba(var(--ion-color-primary-rgb), 0.15);
+  border-color: rgba(var(--ion-color-primary-rgb), 0.5);
+  box-shadow: 0 2px 8px rgba(var(--ion-color-primary-rgb), 0.2);
+}
+
+.custom-back-button ion-icon {
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+.account-welcome-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  text-align: center;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.account-title {
+  font-weight: 600;
+  font-size: 1.3rem;
+  position: relative;
+  left: 0;
+  text-align: center;
+  margin: 0;
+  width: 100%;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform: translateY(-2px);
+}
+
+.welcome-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.welcome-container.animate-slide-up {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.avatar-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.account-avatar {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.account-avatar ion-icon {
+  width: 100%;
+  height: 100%;
+  color: white;
+  padding: 10px;
+}
+
+.username-chip {
+  margin-top: 0.5rem;
+  --background: rgba(var(--ion-color-primary-rgb), 0.3);
+  --color: white;
+  font-weight: 500;
+}
+
+/* Style pour le bouton retour */
+ion-toolbar ion-buttons[slot="end"] ion-button {
+  margin-right: 5px;
+}
+
+ion-toolbar ion-buttons[slot="end"] ion-icon {
+  font-size: 1.4rem;
+}
+
+/* Segment selector */
+.segment-container {
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition-delay: 0.1s;
+}
+
+.segment-container.animate-slide-up {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+ion-segment {
+  --background: rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 3px;
+  border: 1px solid rgba(var(--ion-color-medium-rgb), 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+ion-segment-button {
+  --background-checked: var(--ion-color-primary);
+  --color-checked: white;
+  --color: rgba(var(--ion-color-dark-rgb), 0.7);
+  --indicator-color: transparent;
+  border-radius: 12px;
+  min-height: 40px;
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* Styles spécifiques pour le thème minimal */
+:root.theme-minimal ion-segment {
+  --background: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+:root.theme-minimal ion-segment-button {
+  --background-checked: #333333;
+  --color-checked: white;
+  --color: #333333;
+  font-weight: 600;
+}
+
+:root.theme-minimal ion-segment-button.segment-button-checked {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Styles pour tous les thèmes en mode sombre */
+@media (prefers-color-scheme: dark) {
+  ion-segment {
+    --background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  ion-segment-button {
+    --color: rgba(255, 255, 255, 0.8);
+  }
+  
+  /* Styles spécifiques pour le thème minimal en mode sombre */
+  :root.theme-minimal ion-segment {
+    --background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  :root.theme-minimal ion-segment-button {
+    --background-checked: #ffffff;
+    --color-checked: #333333;
+    --color: #ffffff;
+  }
+}
+
+/* Card styles */
+.profile-form-card,
+.theme-card,
+.password-card {
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.profile-form-card.animate-slide-up,
+.theme-card.animate-slide-up,
+.password-card.animate-slide-up {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1.2rem;
+  color: var(--ion-color-dark);
+}
+
+.section-title ion-icon {
+  margin-right: 0.5rem;
+  font-size: 1.3rem;
+}
+
+/* Form styles */
+.form-container {
+  margin-top: 1rem;
+}
+
+.form-item {
+  --background: transparent;
+  --border-color: rgba(var(--ion-color-medium-rgb), 0.2);
+  --highlight-color-focused: var(--ion-color-primary);
+  --padding-start: 0;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+}
+
+.form-item ion-label {
+  color: var(--ion-color-dark);
+  font-weight: 500;
+}
+
+.form-item ion-input {
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  color: var(--ion-color-dark);
+}
+
+.error-message {
+  font-size: 12px;
+  padding: 5px 0;
+  display: block;
+}
+
+.form-actions {
+  margin-top: 1.5rem;
+}
+
+/* Theme selector */
+.theme-selector {
+  margin-top: 1rem;
+}
+
+.theme-option {
+  --background: rgba(255, 255, 255, 0.1);
+  --background-hover: rgba(255, 255, 255, 0.2);
+  margin-bottom: 10px;
+  border-radius: 10px;
+}
+
+.theme-option h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.theme-option p {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.theme-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.theme-preview-default {
+  background: linear-gradient(135deg, #6c63ff 0%, #ff6584 100%);
+}
+
+.theme-preview-blue {
+  background: linear-gradient(135deg, #4a90e2 0%, #56CCF2 100%);
+}
+
+.theme-preview-green {
+  background: linear-gradient(135deg, #27ae60 0%, #6fcf97 100%);
+}
+
+.theme-preview-minimal {
+  background: linear-gradient(135deg, #333333 0%, #888888 100%);
+}
+
+/* Media Queries */
+@media (max-width: 576px) {
+  .account-welcome-title {
+    font-size: 1.5rem;
+  }
+  
+  .account-avatar {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .section-title {
+    font-size: 1.1rem;
+  }
+}
+
+/* Dark Mode Adjustments */
+@media (prefers-color-scheme: dark) {
+  .section-title {
+    color: var(--ion-color-light);
+  }
+  
+  .form-item ion-label,
+  .form-item ion-input {
+    color: var(--ion-color-light);
+  }
+  
+  .theme-option h2 {
+    color: var(--ion-color-light);
+  }
+}
+
+/* Styles pour le formulaire d'informations en lecture seule */
+.user-info-readonly {
+  margin-top: 10px;
+}
+
+.info-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(var(--ion-color-medium-rgb), 0.1);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-weight: 500;
+  color: var(--ion-color-medium);
+  font-size: 15px;
+}
+
+.info-value {
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  font-size: 16px;
+}
+
+/* Styles pour le formulaire en mode édition */
+.modern-form {
+  margin-top: 10px;
+}
+
+.edit-form-item {
+  margin-bottom: 18px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+}
+
+.edit-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+  margin-bottom: 8px;
+}
+
+.edit-input {
+  --padding-start: 0;
+  --padding-end: 0;
+  --highlight-color: var(--ion-color-primary);
+  --background: transparent;
+  --color: var(--ion-color-dark);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.edit-button {
+  --border-radius: 10px;
+  height: 48px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+
+.save-button {
+  --border-radius: 10px;
+  height: 48px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.cancel-button {
+  --border-radius: 10px;
+  height: 48px;
+}
+
+/* Styles pour le champ email désactivé */
+.email-field-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.disabled-input {
+  opacity: 0.7;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+
+.email-info-badge {
+  position: relative;
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lock-icon {
+  color: var(--ion-color-medium);
+  font-size: 18px;
+}
+
+.email-help-text {
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  width: 200px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+}
+
+.email-info-badge:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .info-value {
+    color: var(--ion-color-light);
+  }
+  
+  .edit-input {
+    --color: var(--ion-color-light);
+  }
+} 
