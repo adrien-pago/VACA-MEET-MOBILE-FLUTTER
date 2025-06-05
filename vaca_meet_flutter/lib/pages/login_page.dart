@@ -43,6 +43,7 @@ class _LoginPageState extends State<LoginPage> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', data['token']);
         }
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         // Erreur de connexion
