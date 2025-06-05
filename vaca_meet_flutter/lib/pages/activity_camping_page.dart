@@ -31,20 +31,6 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
     'Soirée',
   ];
 
-  // Types d'activités et couleurs associées
-  final Map<String, Color> activityColors = {
-    'fitness': Color(0xFFFF5A4C),
-    'meditation': Color(0xFF2ECC85),
-    'yoga': Color(0xFF25D0B6),
-    'water': Color(0xFF38BDF8),
-    'sport': Color(0xFFFF9452),
-    'kids': Color(0xFFFF32B1),
-    'workshop': Color(0xFF6C5DD3),
-    'leisure': Color(0xFF8E44EF),
-    'culture': Color(0xFFFFCA45),
-    'food': Color(0xFFF9B233),
-  };
-
   // Semaine courante (lundi au dimanche)
   DateTime currentMonday = _getMonday(DateTime.now());
 
@@ -55,6 +41,7 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
   bool _loading = false;
   String? _errorMessage;
   List<Map<String, dynamic>> _activities = [];
+  Map<int, Map<String, dynamic>> _categories = {};
 
   @override
   void initState() {
@@ -69,16 +56,20 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
     });
     try {
       final service = ActivityCampingService();
-      final data = await service.getCampingInfo(widget.campingId);
-      if (data != null && data['activities'] is List) {
-        setState(() {
-          _activities = List<Map<String, dynamic>>.from(data['activities']);
-        });
-      } else {
-        setState(() {
-          _errorMessage = "Aucune activité trouvée.";
-        });
+      final weekStart = currentMonday;
+      final weekEnd = currentMonday.add(const Duration(days: 6));
+      final activities = await service.getActivities(widget.campingId, weekStart: weekStart, weekEnd: weekEnd);
+      // Extraire les catégories uniques
+      final Map<int, Map<String, dynamic>> categories = {};
+      for (final act in activities) {
+        if (act['type'] is Map && act['type']['id'] != null) {
+          categories[act['type']['id']] = act['type'];
+        }
       }
+      setState(() {
+        _activities = activities;
+        _categories = categories;
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Erreur lors du chargement des activités.';
@@ -94,12 +85,14 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
     setState(() {
       currentMonday = currentMonday.subtract(const Duration(days: 7));
     });
+    _fetchActivities();
   }
 
   void _goToNextWeek() {
     setState(() {
       currentMonday = currentMonday.add(const Duration(days: 7));
     });
+    _fetchActivities();
   }
 
   String _weekDisplay() {
@@ -120,8 +113,49 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
 
   // Filtre les activités pour la semaine courante
   List<Map<String, dynamic>> getActivitiesForCurrentWeek() {
-    // Pour l'instant, on ne filtre pas par date réelle, car l'API ne fournit pas de date précise
     return _activities;
+  }
+
+  Color? _parseColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    try {
+      String hexColor = hex.replaceAll('#', '');
+      if (hexColor.length == 6) {
+        hexColor = 'FF$hexColor';
+      }
+      return Color(int.parse(hexColor, radix: 16));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Nouvelle fonction pour déterminer les index de créneaux couverts par une activité
+  List<int> _getTimeSlotIndexes(String start, String end) {
+    final slots = <int>[];
+    final startParts = start.split(":");
+    final endParts = end.split(":");
+    int startHour = int.parse(startParts[0]);
+    int startMin = int.parse(startParts[1]);
+    int endHour = int.parse(endParts[0]);
+    int endMin = int.parse(endParts[1]);
+    // Si l'activité commence à 20h ou après, on la met dans 'Soirée'
+    if (startHour >= 20) {
+      return [timeSlots.length - 1];
+    }
+    // On parcourt tous les créneaux sauf 'Soirée'
+    for (int i = 0; i < timeSlots.length - 1; i++) {
+      final slotStart = 8 + i;
+      final slotEnd = slotStart + 1;
+      // Si l'activité chevauche ce créneau
+      final slotStartTime = DateTime(0, 1, 1, slotStart, 0);
+      final slotEndTime = DateTime(0, 1, 1, slotEnd, 0);
+      final actStart = DateTime(0, 1, 1, startHour, startMin);
+      final actEnd = DateTime(0, 1, 1, endHour, endMin);
+      if (actEnd.isAfter(slotStartTime) && actStart.isBefore(slotEndTime)) {
+        slots.add(i);
+      }
+    }
+    return slots;
   }
 
   @override
@@ -228,27 +262,39 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
                                         ),
                                         ...List.generate(daysOfWeek.length, (dayIdx) {
                                           // Chercher une activité pour ce créneau
-                                          final activity = activities.firstWhere(
-                                            (a) => _dayToIndex(a['day'] ?? '') == dayIdx && _timeToIndex(a['time'] ?? '') == timeIdx,
-                                            orElse: () => {},
-                                          );
+                                          final activitiesInSlot = activities.where((a) {
+                                            if (a['day'] == null || a['start_time'] == null || a['end_time'] == null) return false;
+                                            return _dayToIndex(a['day']) == dayIdx && _getTimeSlotIndexes(a['start_time'], a['end_time']).contains(timeIdx);
+                                          }).toList();
                                           return Container(
                                             width: 100,
                                             height: 60,
                                             margin: const EdgeInsets.all(2),
                                             decoration: BoxDecoration(
-                                              color: activity.isNotEmpty && activityColors[activity['type']] != null
-                                                  ? activityColors[activity['type']]!.withOpacity(0.85)
-                                                  : Colors.grey[200],
+                                              color: activitiesInSlot.isNotEmpty ? Colors.blue : Colors.grey[200],
                                               borderRadius: BorderRadius.circular(8),
                                             ),
-                                            child: activity.isNotEmpty
-                                                ? Center(
-                                                    child: Text(
-                                                      activity['title'] ?? '',
-                                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                                      textAlign: TextAlign.center,
-                                                    ),
+                                            child: activitiesInSlot.isNotEmpty
+                                                ? ListView(
+                                                    physics: const NeverScrollableScrollPhysics(),
+                                                    children: activitiesInSlot.map((activity) {
+                                                      final cat = activity['type'] is Map ? activity['type'] : null;
+                                                      final color = cat != null ? _parseColor(cat['color']) : Colors.grey[400];
+                                                      return Container(
+                                                        margin: const EdgeInsets.symmetric(vertical: 2),
+                                                        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                                                        decoration: BoxDecoration(
+                                                          color: color,
+                                                          borderRadius: BorderRadius.circular(6),
+                                                          border: Border.all(color: color ?? Colors.grey, width: 2),
+                                                        ),
+                                                        child: Text(
+                                                          activity['title'] ?? '',
+                                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                                          textAlign: TextAlign.center,
+                                                        ),
+                                                      );
+                                                    }).toList(),
                                                   )
                                                 : null,
                                           );
@@ -256,6 +302,34 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
                                       ],
                                     );
                                   }),
+                                  // Légende des catégories
+                                  if (_categories.isNotEmpty) ...[
+                                    const SizedBox(height: 24),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: _categories.values.map((cat) {
+                                        final color = _parseColor(cat['color']);
+                                        return Container(
+                                          margin: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 18,
+                                                height: 18,
+                                                decoration: BoxDecoration(
+                                                  color: color ?? Colors.grey,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  border: Border.all(color: Colors.black12),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(cat['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
