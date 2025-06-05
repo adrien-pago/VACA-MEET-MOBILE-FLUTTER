@@ -106,11 +106,6 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
     return daysOfWeek.indexWhere((d) => d.toLowerCase() == day.toLowerCase());
   }
 
-  // Mappe le créneau horaire en index
-  int _timeToIndex(String time) {
-    return timeSlots.indexWhere((t) => t.toLowerCase() == time.toLowerCase());
-  }
-
   // Filtre les activités pour la semaine courante
   List<Map<String, dynamic>> getActivitiesForCurrentWeek() {
     return _activities;
@@ -129,7 +124,7 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
     }
   }
 
-  // Nouvelle fonction pour déterminer les index de créneaux couverts par une activité
+  // Nouvelle fonction robuste pour déterminer les index de créneaux couverts par une activité
   List<int> _getTimeSlotIndexes(String start, String end) {
     final slots = <int>[];
     final startParts = start.split(":");
@@ -142,16 +137,14 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
     if (startHour >= 20) {
       return [timeSlots.length - 1];
     }
-    // On parcourt tous les créneaux sauf 'Soirée'
     for (int i = 0; i < timeSlots.length - 1; i++) {
       final slotStart = 8 + i;
       final slotEnd = slotStart + 1;
-      // Si l'activité chevauche ce créneau
-      final slotStartTime = DateTime(0, 1, 1, slotStart, 0);
-      final slotEndTime = DateTime(0, 1, 1, slotEnd, 0);
-      final actStart = DateTime(0, 1, 1, startHour, startMin);
-      final actEnd = DateTime(0, 1, 1, endHour, endMin);
-      if (actEnd.isAfter(slotStartTime) && actStart.isBefore(slotEndTime)) {
+      final slotStartTime = slotStart * 60; // minutes
+      final slotEndTime = slotEnd * 60;
+      final actStart = startHour * 60 + startMin;
+      final actEnd = endHour * 60 + endMin;
+      if (actEnd > slotStartTime && actStart < slotEndTime) {
         slots.add(i);
       }
     }
@@ -271,27 +264,30 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
                                             height: 60,
                                             margin: const EdgeInsets.all(2),
                                             decoration: BoxDecoration(
-                                              color: activitiesInSlot.isNotEmpty ? Colors.blue : Colors.grey[200],
+                                              color: Colors.grey[200],
                                               borderRadius: BorderRadius.circular(8),
                                             ),
                                             child: activitiesInSlot.isNotEmpty
-                                                ? ListView(
-                                                    physics: const NeverScrollableScrollPhysics(),
+                                                ? Column(
                                                     children: activitiesInSlot.map((activity) {
                                                       final cat = activity['type'] is Map ? activity['type'] : null;
                                                       final color = cat != null ? _parseColor(cat['color']) : Colors.grey[400];
-                                                      return Container(
-                                                        margin: const EdgeInsets.symmetric(vertical: 2),
-                                                        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                                                        decoration: BoxDecoration(
-                                                          color: color,
-                                                          borderRadius: BorderRadius.circular(6),
-                                                          border: Border.all(color: color ?? Colors.grey, width: 2),
-                                                        ),
-                                                        child: Text(
-                                                          activity['title'] ?? '',
-                                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                                                          textAlign: TextAlign.center,
+                                                      return Expanded(
+                                                        child: Container(
+                                                          margin: const EdgeInsets.symmetric(vertical: 2),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                                                          decoration: BoxDecoration(
+                                                            color: color,
+                                                            borderRadius: BorderRadius.circular(6),
+                                                            border: Border.all(color: color ?? Colors.grey, width: 2),
+                                                          ),
+                                                          child: Center(
+                                                            child: Text(
+                                                              activity['title'] ?? '',
+                                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                                              textAlign: TextAlign.center,
+                                                            ),
+                                                          ),
                                                         ),
                                                       );
                                                     }).toList(),
