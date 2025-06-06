@@ -3,6 +3,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/profile_service.dart';
 import '../theme/acount_theme.dart';
 import '../services/session_utils.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+import 'dart:convert';
 
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
@@ -26,6 +31,7 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
   String? _successMessage;
   Map<String, dynamic>? _userProfile;
   bool _editMode = false;
+  String? _profilePictureUrl;
 
   @override
   void initState() {
@@ -53,11 +59,15 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
     try {
       final service = ProfileService();
       final profile = await service.getFullProfile();
+      print('PROFILE DATA: ' + profile.toString());
+      print('PROFILE PICTURE URL: [33m' + (profile['profilePicture']?.toString() ?? 'null') + '\u001b[0m');
+      print('PROFILE PICTURE URL (user): [36m' + (profile['user']?['profilePicture']?.toString() ?? 'null') + '\u001b[0m');
       setState(() {
         _userProfile = profile;
         _firstNameController.text = profile['firstName'] ?? '';
         _lastNameController.text = profile['lastName'] ?? '';
         _selectedTheme = profile['theme'] ?? 'light';
+        _profilePictureUrl = profile['profilePicture'] ?? profile['user']?['profilePicture'];
       });
     } catch (e) {
       await handleSessionExpired(context, e);
@@ -156,6 +166,76 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
     }
   }
 
+  Future<void> _pickAndUploadProfilePicture() async {
+    print('>>> Début sélection photo');
+    final picker = ImagePicker();
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Prendre une photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choisir depuis la galerie'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    print('>>> Source sélectionnée: '
+        '[32m$source[0m');
+    if (source == null) return;
+
+    final picked = await picker.pickImage(source: source, imageQuality: 80);
+    print('>>> Image sélectionnée: [34m${picked?.path}[0m');
+    if (picked == null) return;
+
+    setState(() => _loading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final uri = Uri.parse('https://mobile.vaca-meet.fr/api/mobile/user/upload-profile-picture');
+      print('>>> URI: $uri');
+      print('>>> TOKEN: $token');
+      print('>>> FICHIER: ${picked.path}');
+      print('>>> FILENAME: ${path.basename(picked.path)}');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..files.add(await http.MultipartFile.fromPath('file', picked.path, filename: path.basename(picked.path)));
+      print('>>> Envoi de la requête POST');
+      print('>>> HEADERS: ${request.headers}');
+      final response = await request.send();
+      final respStr = await response.stream.bytesToString();
+      print('UPLOAD STATUS: ${response.statusCode}');
+      print('UPLOAD BODY: $respStr');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(respStr);
+        setState(() {
+          _profilePictureUrl = data['profilePicture'];
+        });
+        await _loadUserProfile();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'upload de la photo')),
+        );
+      }
+    } catch (e) {
+      print('>>> Exception lors de l\'upload: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de l\'upload de la photo')),
+      );
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
   Map<String, dynamic>? get _profileData => _userProfile?['user'] ?? _userProfile;
 
   @override
@@ -197,13 +277,62 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
   Widget _buildProfileTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-      child: Container(
-        decoration: AccountTheme.cardDecoration,
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: !_editMode ? _buildProfileDisplay() : _buildProfileEdit(),
-        ),
+      child: Column(
+        children: [
+          _buildProfilePhotoCard(),
+          const SizedBox(height: 32),
+          Container(
+            decoration: AccountTheme.cardDecoration,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: !_editMode ? _buildProfileDisplay() : _buildProfileEdit(),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildProfilePhotoCard() {
+    final double avatarSize = 120;
+    print('AFFICHAGE PHOTO: [32m$_profilePictureUrl[0m');
+    return Column(
+      children: [
+        Container(
+          width: avatarSize,
+          height: avatarSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.blue, width: 5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.15),
+                blurRadius: 16,
+                spreadRadius: 2,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: _profilePictureUrl != null && _profilePictureUrl!.isNotEmpty
+              ? CircleAvatar(
+                  radius: avatarSize / 2,
+                  backgroundImage: NetworkImage('https://mobile.vaca-meet.fr' + _profilePictureUrl!),
+                  backgroundColor: Colors.grey[200],
+                )
+              : CircleAvatar(
+                  radius: avatarSize / 2,
+                  backgroundColor: Colors.grey[200],
+                  child: const Icon(Icons.person, size: 64, color: Colors.blueGrey),
+                ),
+        ),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: _loading ? null : _pickAndUploadProfilePicture,
+          icon: const Icon(Icons.edit),
+          label: const Text('Modifier la photo'),
+          style: AccountTheme.bigButtonStyle,
+        ),
+      ],
     );
   }
 

@@ -202,7 +202,8 @@ class MobileProfileController extends AbstractController
                     'username' => $user->getUsername(),
                     'firstName' => $user->getFirstName(),
                     'lastName' => $user->getLastName(),
-                    'theme' => $user->getTheme()
+                    'theme' => $user->getTheme(),
+                    'profilePicture' => $user->getProfilePicture(),
                 ]
             ]);
         } catch (\Exception $e) {
