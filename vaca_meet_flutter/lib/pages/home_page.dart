@@ -53,6 +53,8 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _user = jsonDecode(response.body);
         });
+        print('HOME PROFILE DATA: ' + _user.toString());
+        print('HOME PROFILE PICTURE: ' + (_user?['profilePicture']?.toString() ?? 'null'));
       } else {
         setState(() {
           _errorMessage = 'Impossible de charger le profil utilisateur.';
