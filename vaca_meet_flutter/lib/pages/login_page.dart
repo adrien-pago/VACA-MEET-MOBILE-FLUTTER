@@ -2,30 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/login_theme.dart';
+import '../widgets/animated_text_field.dart';
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
   bool _loading = false;
   String? _errorMessage;
+  bool _rememberMe = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 900),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    ));
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    ));
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() {
       _loading = true;
       _errorMessage = null;
     });
-
     final url = Uri.parse('https://mobile.vaca-meet.fr/api/login');
     try {
       final response = await http.post(
@@ -36,7 +66,6 @@ class _LoginPageState extends State<LoginPage> {
           'password': _passwordController.text,
         }),
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['token'] != null) {
@@ -46,7 +75,6 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
       } else {
-        // Erreur de connexion
         final data = jsonDecode(response.body);
         setState(() {
           _errorMessage = data['message'] ?? 'Identifiants incorrects. Veuillez réessayer.';
@@ -64,150 +92,187 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _goToRegister() {
-    Navigator.pushNamed(context, '/register');
-  }
-
-  void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    Navigator.pushReplacementNamed(context, '/');
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const RegisterPage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final offsetAnimation = Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic));
+          final fadeAnimation = Tween<double>(begin: 0, end: 1).animate(animation);
+          return SlideTransition(
+            position: offsetAnimation,
+            child: FadeTransition(
+              opacity: fadeAnimation,
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 600),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final isMobile = media.size.width < 600;
     return Scaffold(
+      backgroundColor: const Color(0xFFFDF6F0),
       body: Stack(
         children: [
-          // Effet de fond (optionnel)
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // Illustration en haut
+          ClipPath(
+            clipper: _BottomCurveClipper(),
+            child: Container(
+              width: double.infinity,
+              height: isMobile ? 280 : 340,
+              decoration: const BoxDecoration(
+                color: Colors.transparent,
+              ),
+              child: Image.asset(
+                'assets/vaca-meet-login.png',
+                fit: BoxFit.cover,
               ),
             ),
           ),
-          Center(
+          // Formulaire sur la carte
+          Align(
+            alignment: Alignment.topCenter,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Logo
-                        Icon(Icons.account_circle, size: 80, color: Theme.of(context).primaryColor),
-                        const SizedBox(height: 8),
-                        // Titre
-                        Text(
-                          'Vaca Meet',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            foreground: Paint()
-                              ..shader = const LinearGradient(
-                                colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-                              ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
-                          ),
+              padding: EdgeInsets.only(
+                top: isMobile ? 320 : 250, // carte juste sous l'image
+                left: 16,
+                right: 16,
+                bottom: 0, // peu ou pas d'espace en bas
+              ),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 32,
+                          offset: const Offset(0, 12),
                         ),
-                        const SizedBox(height: 24),
-                        // Sous-titre
-                        const Text(
-                          'Connexion',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 16),
-                        // Email
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.mail_outline),
-                          ),
-                          validator: (value) =>
-                              value == null || value.isEmpty ? 'Veuillez entrer votre email' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        // Mot de passe
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Mot de passe',
-                            prefixIcon: Icon(Icons.lock_outline),
-                          ),
-                          validator: (value) =>
-                              value == null || value.isEmpty ? 'Veuillez entrer votre mot de passe' : null,
-                        ),
-                        const SizedBox(height: 24),
-                        // Bouton connexion
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.arrow_forward),
-                            label: _loading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Se connecter'),
-                            onPressed: _loading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Titre
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: Text(
+                              'Vaca Meet',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1A3557),
+                                letterSpacing: 1.2,
                               ),
-                              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        // Lien vers inscription
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text("Pas encore de compte ?"),
-                            TextButton(
-                              onPressed: _goToRegister,
-                              child: const Text("S'inscrire"),
+                          AnimatedTextField(
+                            controller: _emailController,
+                            hintText: 'Email',
+                            prefixIcon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) => value == null || value.isEmpty ? 'Veuillez entrer votre email' : null,
+                          ),
+                          const SizedBox(height: 18),
+                          AnimatedTextField(
+                            controller: _passwordController,
+                            hintText: 'Password',
+                            prefixIcon: Icons.lock_outline,
+                            obscureText: true,
+                            validator: (value) => value == null || value.isEmpty ? 'Veuillez entrer votre mot de passe' : null,
+                          ),
+                          const SizedBox(height: 18),
+                          // Case à cocher "Mémoriser mes identifiants"
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _rememberMe,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _rememberMe = val ?? false;
+                                  });
+                                },
+                                activeColor: const Color(0xFF1A3557),
+                              ),
+                              const Text(
+                                'Mémoriser mes identifiants',
+                                style: TextStyle(fontSize: 15, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1A3557),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(28),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                elevation: 6,
+                              ),
+                              onPressed: _loading ? null : _login,
+                              child: _loading
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : const Text('Log In'),
+                            ),
+                          ),
+                          if (_errorMessage != null) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              _errorMessage!,
+                              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
                             ),
                           ],
-                        ),
-                        // Affichage des erreurs
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline, color: Colors.red),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(color: Colors.red),
+                          const SizedBox(height: 18),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                "Pas encore de compte ? ",
+                                style: TextStyle(color: Colors.black54, fontSize: 15),
+                              ),
+                              TextButton(
+                                onPressed: _goToRegister,
+                                child: const Text(
+                                  "S'inscrire",
+                                  style: TextStyle(
+                                    color: Color(0xFF1A3557),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -218,4 +283,23 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+}
+
+// ClipPath pour arrondi bas de l'image
+class _BottomCurveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 60);
+    path.quadraticBezierTo(
+      size.width / 2, size.height,
+      size.width, size.height - 60,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 } 

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'home_camping_page.dart';
 import 'account_page.dart';
+import '../theme/home_theme.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -224,13 +225,7 @@ class _HomePageState extends State<HomePage> {
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+            decoration: HomeTheme.backgroundDecoration,
           ),
           if (_loading)
             const Center(child: CircularProgressIndicator()),
@@ -238,127 +233,142 @@ class _HomePageState extends State<HomePage> {
             Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.account_circle, size: 80, color: Theme.of(context).primaryColor),
-                        const SizedBox(height: 8),
-                        Text(
-                          _user != null ? 'Bienvenue, ${_user!['firstName'] ?? ''} ${_user!['lastName'] ?? ''} !' : 'Bienvenue sur Vaca Meet !',
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        if (_user != null) ...[
-                          const SizedBox(height: 8),
-                          Text(_user!['username'] ?? '', style: const TextStyle(color: Colors.grey)),
-                        ],
-                        const SizedBox(height: 24),
-                        const Text('Choisissez votre destination', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<int>(
-                          value: _selectedDestinationId,
-                          items: _destinations.map<DropdownMenuItem<int>>((dest) {
-                            return DropdownMenuItem<int>(
-                              value: dest['id'],
-                              child: Text(dest['username'] ?? 'Destination'),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedDestinationId = value;
-                              _passwordError = null;
-                            });
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Destination',
-                            prefixIcon: Icon(Icons.location_on_outlined),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Mot de passe',
-                            prefixIcon: Icon(Icons.lock_outline),
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              _vacationPassword = value;
-                              _passwordError = null;
-                            });
-                          },
-                        ),
-                        if (_passwordError != null) ...[
-                          const SizedBox(height: 8),
-                          Text(_passwordError!, style: const TextStyle(color: Colors.red)),
-                        ],
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.arrow_forward),
-                            label: const Text("Let's Go"),
-                            onPressed: _loading ? null : _verifyVacationPassword,
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ),
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline, color: Colors.red),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (_toastMessage != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.check_circle_outline, color: Colors.green),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _toastMessage!,
-                                    style: const TextStyle(color: Colors.green),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      radius: 48,
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.account_circle, size: 80, color: Theme.of(context).primaryColor),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _user != null
+                          ? 'Bienvenue, ${_user!['firstName'] ?? ''} ${_user!['lastName'] ?? ''} !'
+                          : 'Bienvenue sur Vaca Meet !',
+                      style: HomeTheme.welcomeTextStyle,
+                      textAlign: TextAlign.center,
+                    ),
+                    if (_user != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _user!['username'] ?? '',
+                        style: HomeTheme.nameTextStyle,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                    const SizedBox(height: 32),
+                    Container(
+                      decoration: HomeTheme.cardDecoration,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Choisissez votre destination', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 16),
+                            DropdownButtonFormField<int>(
+                              value: _selectedDestinationId,
+                              items: _destinations.map<DropdownMenuItem<int>>((dest) {
+                                return DropdownMenuItem<int>(
+                                  value: dest['id'],
+                                  child: Text(dest['username'] ?? 'Destination'),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedDestinationId = value;
+                                  _passwordError = null;
+                                });
+                              },
+                              decoration: const InputDecoration(
+                                labelText: 'Destination',
+                                prefixIcon: Icon(Icons.location_on_outlined),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              obscureText: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Mot de passe',
+                                prefixIcon: Icon(Icons.lock_outline),
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  _vacationPassword = value;
+                                  _passwordError = null;
+                                });
+                              },
+                            ),
+                            if (_passwordError != null) ...[
+                              const SizedBox(height: 8),
+                              Text(_passwordError!, style: const TextStyle(color: Colors.red)),
+                            ],
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.arrow_forward),
+                                label: const Text("Let's Go"),
+                                onPressed: _loading ? null : _verifyVacationPassword,
+                                style: ElevatedButton.styleFrom(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            if (_errorMessage != null) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.error_outline, color: Colors.red),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _errorMessage!,
+                                        style: const TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            if (_toastMessage != null) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.check_circle_outline, color: Colors.green),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _toastMessage!,
+                                        style: const TextStyle(color: Colors.green),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
