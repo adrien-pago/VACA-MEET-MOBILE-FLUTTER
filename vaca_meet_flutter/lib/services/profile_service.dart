@@ -9,7 +9,7 @@ class ProfileService {
     try {
       final token = await _getToken();
       final response = await http.get(
-        Uri.parse('$baseUrl/profile'),
+        Uri.parse(baseUrl),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

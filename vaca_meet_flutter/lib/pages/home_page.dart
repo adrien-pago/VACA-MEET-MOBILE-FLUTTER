@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'home_camping_page.dart';
 import 'account_page.dart';
 import '../theme/home_theme.dart';
+import '../theme/app_theme.dart';
+import '../theme/login_theme.dart';
+import '../services/session_utils.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -56,6 +59,7 @@ class _HomePageState extends State<HomePage> {
         });
       }
     } catch (e) {
+      await handleSessionExpired(context, e);
       setState(() {
         _errorMessage = 'Erreur de connexion au serveur.';
       });
@@ -86,6 +90,7 @@ class _HomePageState extends State<HomePage> {
         });
       }
     } catch (e) {
+      await handleSessionExpired(context, e);
       setState(() {
         _errorMessage = 'Erreur de connexion au serveur.';
       });
@@ -139,9 +144,28 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    Navigator.pushReplacementNamed(context, '/');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Non'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Oui'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      Navigator.pushReplacementNamed(context, '/');
+    }
   }
 
   void _goToAccount() {
@@ -155,7 +179,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_user != null ? '${_user!['firstName'] ?? ''} ${_user!['lastName'] ?? ''}' : 'Accueil'),
+        title: const Text('Vaca Meet'),
+        centerTitle: true,
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
@@ -177,19 +202,25 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                color: Theme.of(context).primaryColor,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6DD5FA), Colors.white],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
                 child: Column(
                   children: [
-                    Icon(Icons.account_circle, size: 64, color: Colors.white),
+                    Icon(Icons.account_circle, size: 80, color: Colors.white),
                     const SizedBox(height: 8),
                     Text(
-                      _user != null ? '${_user!['firstName'] ?? ''} ${_user!['lastName'] ?? ''}' : '',
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      _user != null ? (_user!['firstName'] ?? '') : '',
+                      style: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       _user != null ? _user!['username'] ?? '' : '',
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      style: const TextStyle(color: Colors.black87, fontSize: 14),
                     ),
                   ],
                 ),
@@ -230,147 +261,186 @@ class _HomePageState extends State<HomePage> {
           if (_loading)
             const Center(child: CircularProgressIndicator()),
           if (!_loading)
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.account_circle, size: 80, color: Theme.of(context).primaryColor),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _user != null
-                          ? 'Bienvenue, ${_user!['firstName'] ?? ''} ${_user!['lastName'] ?? ''} !'
-                          : 'Bienvenue sur Vaca Meet !',
-                      style: HomeTheme.welcomeTextStyle,
-                      textAlign: TextAlign.center,
-                    ),
-                    if (_user != null) ...[
-                      const SizedBox(height: 4),
+            Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                const SizedBox(height: 36),
+                Center(
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 48,
+                        backgroundColor: Colors.white,
+                        child: Icon(Icons.account_circle, size: 80, color: Theme.of(context).primaryColor),
+                      ),
+                      const SizedBox(height: 12),
                       Text(
-                        _user!['username'] ?? '',
-                        style: HomeTheme.nameTextStyle,
+                        _user != null
+                            ? 'Bienvenue, ${_user!['firstName'] ?? ''} !'
+                            : 'Bienvenue sur Vaca Meet !',
+                        style: HomeTheme.welcomeTextStyle,
                         textAlign: TextAlign.center,
                       ),
                     ],
-                    const SizedBox(height: 32),
-                    Container(
-                      decoration: HomeTheme.cardDecoration,
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Choisissez votre destination', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 16),
-                            DropdownButtonFormField<int>(
-                              value: _selectedDestinationId,
-                              items: _destinations.map<DropdownMenuItem<int>>((dest) {
-                                return DropdownMenuItem<int>(
-                                  value: dest['id'],
-                                  child: Text(dest['username'] ?? 'Destination'),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedDestinationId = value;
-                                  _passwordError = null;
-                                });
-                              },
-                              decoration: const InputDecoration(
-                                labelText: 'Destination',
-                                prefixIcon: Icon(Icons.location_on_outlined),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Container(
+                        decoration: AppTheme.cardDecoration,
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Choisissez votre destination', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<int>(
+                                value: _selectedDestinationId,
+                                items: _destinations.asMap().entries.map<DropdownMenuItem<int>>((entry) {
+                                  final idx = entry.key;
+                                  final dest = entry.value;
+                                  final isLast = idx == _destinations.length - 1;
+                                  return DropdownMenuItem<int>(
+                                    value: dest['id'],
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          dest['username'] ?? 'Destination',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        if (!isLast)
+                                          const Divider(
+                                            height: 12,
+                                            thickness: 1,
+                                            color: Color(0xFFE0E0E0),
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedDestinationId = value;
+                                    _passwordError = null;
+                                  });
+                                },
+                                decoration: AppTheme.textFieldDecoration(
+                                  label: 'Destination',
+                                  icon: Icons.location_on_outlined,
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
+                                ),
+                                selectedItemBuilder: (context) {
+                                  return _destinations.map<Widget>((dest) {
+                                    return Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        dest['username'] ?? 'Destination',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: AuthTheme.primaryColor,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList();
+                                },
+                                dropdownColor: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Mot de passe',
-                                prefixIcon: Icon(Icons.lock_outline),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                obscureText: true,
+                                decoration: AppTheme.textFieldDecoration(
+                                  label: 'Mot de passe',
+                                  icon: Icons.lock_outline,
+                                ),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _vacationPassword = value;
+                                    _passwordError = null;
+                                  });
+                                },
                               ),
-                              onChanged: (value) {
-                                setState(() {
-                                  _vacationPassword = value;
-                                  _passwordError = null;
-                                });
-                              },
-                            ),
-                            if (_passwordError != null) ...[
-                              const SizedBox(height: 8),
-                              Text(_passwordError!, style: const TextStyle(color: Colors.red)),
-                            ],
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 54,
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.arrow_forward),
-                                label: const Text("Let's Go"),
-                                onPressed: _loading ? null : _verifyVacationPassword,
-                                style: ElevatedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                              if (_passwordError != null) ...[
+                                const SizedBox(height: 8),
+                                Text(_passwordError!, style: const TextStyle(color: Colors.red)),
+                              ],
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 54,
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.arrow_forward),
+                                  label: const Text("Let's Go"),
+                                  onPressed: _loading ? null : _verifyVacationPassword,
+                                  style: AppTheme.primaryButtonStyle,
+                                ),
+                              ),
+                              if (_errorMessage != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                            if (_errorMessage != null) ...[
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.error_outline, color: Colors.red),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _errorMessage!,
-                                        style: const TextStyle(color: Colors.red),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.error_outline, color: Colors.red),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _errorMessage!,
+                                          style: const TextStyle(color: Colors.red),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                            if (_toastMessage != null) ...[
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.check_circle_outline, color: Colors.green),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _toastMessage!,
-                                        style: const TextStyle(color: Colors.green),
+                              ],
+                              if (_toastMessage != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle_outline, color: Colors.green),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _toastMessage!,
+                                          style: const TextStyle(color: Colors.green),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
         ],
       ),

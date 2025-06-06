@@ -4,6 +4,10 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'activity_camping_page.dart';
 import 'account_page.dart';
+import '../theme/home_theme.dart';
+import '../theme/app_theme.dart';
+import '../theme/home_camping_theme.dart';
+import '../services/session_utils.dart';
 
 class HomeCampingPage extends StatefulWidget {
   final int campingId;
@@ -60,6 +64,7 @@ class _HomeCampingPageState extends State<HomeCampingPage> {
         setState(() { _errorMessage = "Impossible de charger les infos du camping."; });
       }
     } catch (e) {
+      await handleSessionExpired(context, e);
       setState(() { _errorMessage = 'Erreur de connexion au serveur.'; });
     } finally {
       setState(() { _loading = false; });
@@ -67,9 +72,28 @@ class _HomeCampingPageState extends State<HomeCampingPage> {
   }
 
   void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    Navigator.pushReplacementNamed(context, '/');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Non'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Oui'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      Navigator.pushReplacementNamed(context, '/');
+    }
   }
 
   void _goToHome() {
@@ -100,6 +124,7 @@ class _HomeCampingPageState extends State<HomeCampingPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(campingName.isNotEmpty ? campingName : 'Camping'),
+        centerTitle: true,
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
@@ -121,19 +146,25 @@ class _HomeCampingPageState extends State<HomeCampingPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                color: Theme.of(context).primaryColor,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6DD5FA), Colors.white],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
                 child: Column(
                   children: [
-                    Icon(Icons.account_circle, size: 64, color: Colors.white),
+                    Icon(Icons.account_circle, size: 80, color: Colors.white),
                     const SizedBox(height: 8),
                     Text(
-                      _user != null ? '${_user!['firstName'] ?? ''} ${_user!['lastName'] ?? ''}' : '',
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      _user != null ? (_user!['firstName'] ?? '') : '',
+                      style: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       _user != null ? _user!['username'] ?? '' : '',
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      style: const TextStyle(color: Colors.black87, fontSize: 14),
                     ),
                   ],
                 ),
@@ -180,162 +211,179 @@ class _HomeCampingPageState extends State<HomeCampingPage> {
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+            decoration: HomeCampingTheme.backgroundDecoration,
           ),
           if (_loading)
             const Center(child: CircularProgressIndicator()),
           if (!_loading)
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 16),
-                    Text(
-                      campingName.isNotEmpty ? 'Bienvenue au $campingName' : 'Bienvenue au camping',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        foreground: Paint()
-                          ..shader = LinearGradient(
-                            colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-                          ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('Animations du camping', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                                TextButton.icon(
-                                  onPressed: _goToActivity,
-                                  icon: const Icon(Icons.calendar_today),
-                                  label: const Text('Voir les activités'),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Services disponibles', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 12),
-                            if (services.isNotEmpty)
-                              ...services.map<Widget>((service) => ListTile(
-                                    leading: const Icon(Icons.room_service),
-                                    title: Text(service['name'] ?? ''),
-                                    subtitle: Text(service['description'] ?? ''),
-                                    trailing: Text(service['hours'] ?? ''),
-                                  ))
-                            else
-                              const Text('Aucun service disponible pour le moment.'),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Card(
-                      elevation: 6,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Activités des vacanciers', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 12),
-                            if (activities.isNotEmpty)
-                              ...activities.map<Widget>((activity) => ListTile(
-                                    leading: const Icon(Icons.people),
-                                    title: Text(activity['title'] ?? ''),
-                                    subtitle: Text(activity['description'] ?? ''),
-                                    trailing: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+            Column(
+              children: [
+                const SizedBox(height: 28),
+                Text(
+                  campingName.isNotEmpty ? 'Bienvenue au $campingName' : 'Bienvenue au camping',
+                  style: HomeCampingTheme.welcomeTextStyle,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final cardWidth = constraints.maxWidth;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: cardWidth,
+                                child: Container(
+                                  decoration: HomeCampingTheme.cardDecoration,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(activity['day'] ?? ''),
-                                        Text(activity['time'] ?? ''),
-                                        Text(activity['location'] ?? ''),
+                                        Text(
+                                          'Animations du camping',
+                                          style: HomeCampingTheme.sectionTitleStyle,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        TextButton.icon(
+                                          onPressed: _goToActivity,
+                                          icon: const Icon(Icons.calendar_today, color: Colors.black),
+                                          label: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text('Voir les activités'),
+                                              const SizedBox(width: 6),
+                                              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black),
+                                            ],
+                                          ),
+                                          style: HomeCampingTheme.activityButtonStyle,
+                                        ),
                                       ],
                                     ),
-                                  ))
-                            else
-                              const Text('Aucune activité organisée pour le moment.'),
-                          ],
-                        ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: cardWidth,
+                                child: Container(
+                                  decoration: HomeCampingTheme.cardDecoration,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Services disponibles',
+                                          style: HomeCampingTheme.sectionTitleStyle,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        if (services.isNotEmpty)
+                                          ...services.map<Widget>((service) => ListTile(
+                                                leading: const Icon(Icons.room_service),
+                                                title: Text(service['name'] ?? ''),
+                                                subtitle: Text(service['description'] ?? ''),
+                                                trailing: Text(service['hours'] ?? ''),
+                                              ))
+                                        else
+                                          const Text('Aucun service disponible pour le moment.'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: cardWidth,
+                                child: Container(
+                                  decoration: HomeCampingTheme.cardDecoration,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Activités des vacanciers',
+                                          style: HomeCampingTheme.sectionTitleStyle,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        if (activities.isNotEmpty)
+                                          ...activities.map<Widget>((activity) => ListTile(
+                                                leading: const Icon(Icons.people),
+                                                title: Text(activity['title'] ?? ''),
+                                                subtitle: Text(activity['description'] ?? ''),
+                                                trailing: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(activity['day'] ?? ''),
+                                                    Text(activity['time'] ?? ''),
+                                                    Text(activity['location'] ?? ''),
+                                                  ],
+                                                ),
+                                              ))
+                                        else
+                                          const Text('Aucune activité organisée pour le moment.'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_errorMessage != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withAlpha((0.1 * 255).toInt()),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.error_outline, color: Colors.red),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _errorMessage!,
+                                          style: const TextStyle(color: Colors.red),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              if (_toastMessage != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withAlpha((0.1 * 255).toInt()),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.check_circle_outline, color: Colors.green),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _toastMessage!,
+                                          style: const TextStyle(color: Colors.green),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
                       ),
                     ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withAlpha((0.1 * 255).toInt()),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline, color: Colors.red),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    if (_toastMessage != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withAlpha((0.1 * 255).toInt()),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline, color: Colors.green),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _toastMessage!,
-                                style: const TextStyle(color: Colors.green),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
         ],
       ),
