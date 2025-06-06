@@ -110,6 +110,7 @@ flutter pub get
 
 # Démarrage en développement
 flutter run
+flutter run -d chrome 
 
 # Build pour Android
 flutter build apk

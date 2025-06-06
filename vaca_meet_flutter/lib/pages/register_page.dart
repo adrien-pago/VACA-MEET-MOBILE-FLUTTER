@@ -1,34 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/animated_text_field.dart';
+import 'login_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  const RegisterPage({Key? key}) : super(key: key);
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _loading = false;
   String? _errorMessage;
-  String? _successMessage;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 900),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    ));
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    ));
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() {
       _loading = true;
       _errorMessage = null;
-      _successMessage = null;
     });
-
     final url = Uri.parse('https://mobile.vaca-meet.fr/api/register');
     try {
       final response = await http.post(
@@ -36,24 +67,23 @@ class _RegisterPageState extends State<RegisterPage> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': _emailController.text,
-          'password': _passwordController.text,
           'firstName': _firstNameController.text,
           'lastName': _lastNameController.text,
+          'password': _passwordController.text,
         }),
       );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        setState(() {
-          _successMessage = "Inscription réussie ! Veuillez vous connecter.";
-        });
-        // Redirige vers login après un court délai
-        Future.delayed(const Duration(seconds: 1), () {
-          Navigator.pushReplacementNamed(context, '/');
-        });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['user'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('token', data['token'] ?? '');
+        }
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
       } else {
         final data = jsonDecode(response.body);
         setState(() {
-          _errorMessage = data['message'] ?? 'Erreur lors de l\'inscription. Veuillez réessayer.';
+          _errorMessage = data['message'] ?? 'Erreur lors de l\'inscription.';
         });
       }
     } catch (e) {
@@ -68,185 +98,184 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _goToLogin() {
-    Navigator.pushReplacementNamed(context, '/');
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const LoginPage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final offsetAnimation = Tween<Offset>(
+            begin: const Offset(-1, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic));
+          final fadeAnimation = Tween<double>(begin: 0, end: 1).animate(animation);
+          return SlideTransition(
+            position: offsetAnimation,
+            child: FadeTransition(
+              opacity: fadeAnimation,
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 600),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final isMobile = media.size.width < 600;
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+          // Background image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/register-background.png',
+              fit: BoxFit.cover,
             ),
           ),
           Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.account_circle, size: 80, color: Theme.of(context).primaryColor),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Vaca Meet',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            foreground: Paint()
-                              ..shader = const LinearGradient(
-                                colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-                              ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
-                          ),
+              padding: EdgeInsets.symmetric(vertical: isMobile ? 24 : 48, horizontal: 16),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.92),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.10),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Créer un compte',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'Email',
-                            prefixIcon: Icon(Icons.mail_outline),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer votre email';
-                            } else if (!RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
-                              return 'Veuillez entrer un email valide';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Mot de passe',
-                            prefixIcon: Icon(Icons.lock_outline),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer votre mot de passe';
-                            } else if (value.length < 6) {
-                              return 'Le mot de passe doit contenir au moins 6 caractères';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _firstNameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Prénom',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _lastNameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nom',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.arrow_forward),
-                            label: _loading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Créer un compte'),
-                            onPressed: _loading ? null : _register,
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Titre
+                          Text(
+                            'Vaca Meet',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1A3557),
+                              letterSpacing: 1.1,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text("Déjà un compte ?"),
-                            TextButton(
-                              onPressed: _goToLogin,
-                              child: const Text("Se connecter"),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Register',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1A3557),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+                          // Champs
+                          AnimatedTextField(
+                            controller: _firstNameController,
+                            hintText: 'Prénom',
+                            prefixIcon: Icons.badge,
+                            validator: (value) => value == null || value.isEmpty ? 'Veuillez entrer votre prénom' : null,
+                          ),
+                          const SizedBox(height: 18),
+                          AnimatedTextField(
+                            controller: _lastNameController,
+                            hintText: 'Nom',
+                            prefixIcon: Icons.badge_outlined,
+                            validator: (value) => value == null || value.isEmpty ? 'Veuillez entrer votre nom' : null,
+                          ),
+                          const SizedBox(height: 18),
+                          AnimatedTextField(
+                            controller: _emailController,
+                            hintText: 'Email',
+                            prefixIcon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) => value == null || value.isEmpty ? 'Veuillez entrer votre email' : null,
+                          ),
+                          const SizedBox(height: 18),
+                          AnimatedTextField(
+                            controller: _passwordController,
+                            hintText: 'Mot de passe',
+                            prefixIcon: Icons.lock_outline,
+                            obscureText: true,
+                            validator: (value) => value == null || value.length < 6 ? '6 caractères minimum' : null,
+                          ),
+                          const SizedBox(height: 18),
+                          AnimatedTextField(
+                            controller: _confirmPasswordController,
+                            hintText: 'Confirmer le mot de passe',
+                            prefixIcon: Icons.lock_outline,
+                            obscureText: true,
+                            validator: (value) => value != _passwordController.text ? 'Les mots de passe ne correspondent pas' : null,
+                          ),
+                          const SizedBox(height: 28),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFA726),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                elevation: 6,
+                              ),
+                              onPressed: _loading ? null : _register,
+                              child: _loading
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : const Text('Sign Up'),
+                            ),
+                          ),
+                          if (_errorMessage != null) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              _errorMessage!,
+                              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
                             ),
                           ],
-                        ),
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.error_outline, color: Colors.red),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(color: Colors.red),
+                          const SizedBox(height: 18),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                "Déjà un compte ? ",
+                                style: TextStyle(color: Colors.black54, fontSize: 15),
+                              ),
+                              TextButton(
+                                onPressed: _goToLogin,
+                                child: const Text(
+                                  "Se connecter",
+                                  style: TextStyle(
+                                    color: Color(0xFF1A3557),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
-                        if (_successMessage != null) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.check_circle_outline, color: Colors.green),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _successMessage!,
-                                    style: const TextStyle(color: Colors.green),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
