@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Vaca Meet</string>
-    <string name="title_activity_main">Vaca Meet</string>
-    <string name="package_name">com.vacameet.app</string>
-    <string name="custom_url_scheme">com.vacameet.app</string>
-</resources>

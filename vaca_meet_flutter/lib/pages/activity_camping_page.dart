@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'activity_camping_service.dart';
+import '../services/activity_camping_service.dart';
 
 class ActivityCampingPage extends StatefulWidget {
   final int campingId;

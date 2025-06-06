@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'activity_camping_page.dart';
+import 'account_page.dart';
 
 class HomeCampingPage extends StatefulWidget {
   final int campingId;
@@ -76,8 +77,9 @@ class _HomeCampingPageState extends State<HomeCampingPage> {
   }
 
   void _goToAccount() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Page Compte à venir !')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AccountPage()),
     );
   }
 
