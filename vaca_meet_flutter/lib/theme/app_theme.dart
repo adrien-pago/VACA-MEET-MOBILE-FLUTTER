@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_theme.dart';
 
 class AppTheme {
   // Couleurs principales
@@ -46,36 +47,43 @@ class AppTheme {
   // Styles de cartes
   static final BoxDecoration cardDecoration = BoxDecoration(
     color: Colors.white,
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(24),
     boxShadow: [
       BoxShadow(
         color: Colors.black.withOpacity(0.1),
-        blurRadius: 10,
-        offset: const Offset(0, 4),
+        blurRadius: 20,
+        offset: const Offset(0, 10),
       ),
     ],
   );
 
   // Styles de champs de texte
-  static final InputDecoration textFieldDecoration = InputDecoration(
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide.none,
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: BorderSide(color: Colors.grey.shade300),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: primaryColor),
-    ),
-    errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
-      borderSide: const BorderSide(color: errorColor),
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-  );
+  static InputDecoration textFieldDecoration({String? label, IconData? icon, String? hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: icon != null ? Icon(icon) : null,
+      filled: true,
+      fillColor: Colors.white,
+      hintStyle: TextStyle(color: Colors.grey.shade400),
+      prefixIconColor: AuthTheme.primaryColor,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AuthTheme.primaryColor, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AuthTheme.errorColor, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+    );
+  }
 } 

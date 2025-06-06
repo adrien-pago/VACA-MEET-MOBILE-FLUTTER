@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/activity_camping_service.dart';
+import '../theme/activity_camping_theme.dart';
+import '../services/session_utils.dart';
 
 class ActivityCampingPage extends StatefulWidget {
   final int campingId;
@@ -71,6 +73,7 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
         _categories = categories;
       });
     } catch (e) {
+      await handleSessionExpired(context, e);
       setState(() {
         _errorMessage = 'Erreur lors du chargement des activités.';
       });
@@ -157,19 +160,14 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Planning des activités'),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF6DD5FA), Color(0xFF2980B9)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        decoration: ActivityCampingTheme.backgroundDecoration,
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage != null
@@ -188,7 +186,7 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
                           ),
                           Text(
                             _weekDisplay(),
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: ActivityCampingTheme.titleStyle.copyWith(fontSize: 18, color: Colors.black87, shadows: []),
                           ),
                           IconButton(
                             icon: const Icon(Icons.chevron_right),
@@ -199,134 +197,135 @@ class _ActivityCampingPageState extends State<ActivityCampingPage> {
                       const SizedBox(height: 16),
                       Expanded(
                         child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Card(
-                            elevation: 6,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                children: [
-                                  // En-tête des jours
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 80,
-                                        alignment: Alignment.center,
-                                        child: const Text('Horaire', style: TextStyle(fontWeight: FontWeight.bold)),
-                                      ),
-                                      ...List.generate(daysOfWeek.length, (dayIdx) {
-                                        final day = daysOfWeek[dayIdx];
-                                        final today = DateTime.now();
-                                        final currentDay = currentMonday.add(Duration(days: dayIdx));
-                                        final isToday = today.day == currentDay.day && today.month == currentDay.month && today.year == currentDay.year;
-                                        return Container(
-                                          width: 100,
-                                          alignment: Alignment.center,
-                                          decoration: isToday
-                                              ? BoxDecoration(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  color: Colors.blue.withOpacity(0.15),
-                                                )
-                                              : null,
-                                          child: Text(
-                                            day,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: isToday ? Colors.blue[900] : Colors.black87,
-                                            ),
-                                          ),
-                                        );
-                                      }),
-                                    ],
-                                  ),
-                                  // Planning
-                                  ...List.generate(timeSlots.length, (timeIdx) {
-                                    return Row(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Container(
+                              decoration: ActivityCampingTheme.cardDecoration,
+                              margin: const EdgeInsets.only(bottom: 24),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  children: [
+                                    // En-tête des jours
+                                    Row(
                                       children: [
                                         Container(
                                           width: 80,
-                                          height: 60,
                                           alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            color: timeSlots[timeIdx] == 'Soirée' ? Colors.blue[50] : Colors.white,
-                                          ),
-                                          child: Text(timeSlots[timeIdx], style: const TextStyle(fontSize: 13)),
+                                          child: Text('Horaire', style: ActivityCampingTheme.headerStyle),
                                         ),
                                         ...List.generate(daysOfWeek.length, (dayIdx) {
-                                          // Chercher une activité pour ce créneau
-                                          final activitiesInSlot = activities.where((a) {
-                                            if (a['day'] == null || a['start_time'] == null || a['end_time'] == null) return false;
-                                            return _dayToIndex(a['day']) == dayIdx && _getTimeSlotIndexes(a['start_time'], a['end_time']).contains(timeIdx);
-                                          }).toList();
+                                          final day = daysOfWeek[dayIdx];
+                                          final today = DateTime.now();
+                                          final currentDay = currentMonday.add(Duration(days: dayIdx));
+                                          final isToday = today.day == currentDay.day && today.month == currentDay.month && today.year == currentDay.year;
                                           return Container(
                                             width: 100,
-                                            height: 60,
-                                            margin: const EdgeInsets.all(2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[200],
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: activitiesInSlot.isNotEmpty
-                                                ? Column(
-                                                    children: activitiesInSlot.map((activity) {
-                                                      final cat = activity['type'] is Map ? activity['type'] : null;
-                                                      final color = cat != null ? _parseColor(cat['color']) : Colors.grey[400];
-                                                      return Expanded(
-                                                        child: Container(
-                                                          margin: const EdgeInsets.symmetric(vertical: 2),
-                                                          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                                                          decoration: BoxDecoration(
-                                                            color: color,
-                                                            borderRadius: BorderRadius.circular(6),
-                                                            border: Border.all(color: color ?? Colors.grey, width: 2),
-                                                          ),
-                                                          child: Center(
-                                                            child: Text(
-                                                              activity['title'] ?? '',
-                                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                                                              textAlign: TextAlign.center,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      );
-                                                    }).toList(),
+                                            alignment: Alignment.center,
+                                            decoration: isToday
+                                                ? BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    color: Colors.blue.withOpacity(0.15),
                                                   )
                                                 : null,
+                                            child: Text(
+                                              day,
+                                              style: ActivityCampingTheme.headerStyle.copyWith(
+                                                color: isToday ? Colors.blue[900] : ActivityCampingTheme.headerStyle.color,
+                                              ),
+                                            ),
                                           );
                                         }),
                                       ],
-                                    );
-                                  }),
-                                  // Légende des catégories
-                                  if (_categories.isNotEmpty) ...[
-                                    const SizedBox(height: 24),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: _categories.values.map((cat) {
-                                        final color = _parseColor(cat['color']);
-                                        return Container(
-                                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                width: 18,
-                                                height: 18,
-                                                decoration: BoxDecoration(
-                                                  color: color ?? Colors.grey,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                  border: Border.all(color: Colors.black12),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Text(cat['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w500)),
-                                            ],
-                                          ),
-                                        );
-                                      }).toList(),
                                     ),
+                                    // Planning
+                                    ...List.generate(timeSlots.length, (timeIdx) {
+                                      return Row(
+                                        children: [
+                                          Container(
+                                            width: 80,
+                                            height: 60,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: timeSlots[timeIdx] == 'Soirée' ? Colors.blue[50] : Colors.white,
+                                            ),
+                                            child: Text(timeSlots[timeIdx], style: ActivityCampingTheme.slotStyle),
+                                          ),
+                                          ...List.generate(daysOfWeek.length, (dayIdx) {
+                                            // Chercher une activité pour ce créneau
+                                            final activitiesInSlot = activities.where((a) {
+                                              if (a['day'] == null || a['start_time'] == null || a['end_time'] == null) return false;
+                                              return _dayToIndex(a['day']) == dayIdx && _getTimeSlotIndexes(a['start_time'], a['end_time']).contains(timeIdx);
+                                            }).toList();
+                                            return Container(
+                                              width: 100,
+                                              height: 60,
+                                              margin: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[200],
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: activitiesInSlot.isNotEmpty
+                                                  ? Column(
+                                                      children: activitiesInSlot.map((activity) {
+                                                        final cat = activity['type'] is Map ? activity['type'] : null;
+                                                        final color = cat != null ? _parseColor(cat['color']) : Colors.grey[400];
+                                                        return Expanded(
+                                                          child: Container(
+                                                            margin: const EdgeInsets.symmetric(vertical: 2),
+                                                            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                                                            decoration: BoxDecoration(
+                                                              color: color,
+                                                              borderRadius: BorderRadius.circular(6),
+                                                              border: Border.all(color: color ?? Colors.grey, width: 2),
+                                                            ),
+                                                            child: Center(
+                                                              child: Text(
+                                                                activity['title'] ?? '',
+                                                                style: ActivityCampingTheme.activityTextStyle,
+                                                                textAlign: TextAlign.center,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    )
+                                                  : null,
+                                            );
+                                          }),
+                                        ],
+                                      );
+                                    }),
+                                    // Légende des catégories
+                                    if (_categories.isNotEmpty) ...[
+                                      const SizedBox(height: 24),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: _categories.values.map((cat) {
+                                          final color = _parseColor(cat['color']);
+                                          return Container(
+                                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: 18,
+                                                  height: 18,
+                                                  decoration: BoxDecoration(
+                                                    color: color ?? Colors.grey,
+                                                    borderRadius: BorderRadius.circular(6),
+                                                    border: Border.all(color: Colors.black12),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(cat['name'] ?? '', style: ActivityCampingTheme.legendTextStyle),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           ),
