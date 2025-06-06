@@ -36,6 +36,7 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
+    _printToken();
     _tabController = TabController(length: 3, vsync: this);
     _loadUserProfile();
   }
@@ -234,6 +235,12 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
     } finally {
       setState(() => _loading = false);
     }
+  }
+
+  Future<void> _printToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    print('MON TOKEN JWT: ' + (token ?? 'Aucun token trouvé'));
   }
 
   Map<String, dynamic>? get _profileData => _userProfile?['user'] ?? _userProfile;

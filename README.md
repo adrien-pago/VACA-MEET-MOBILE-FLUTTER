@@ -111,6 +111,7 @@ flutter pub get
 # Démarrage en développement
 flutter run
 flutter run -d chrome 
+flutter run -d emulator-5554
 
 # Build pour Android
 flutter build apk
@@ -152,3 +153,5 @@ La documentation détaillée de l'application se trouve dans le dossier `docs/`,
 ## 📄 Licence
 
 Ce projet est sous licence.
+
+

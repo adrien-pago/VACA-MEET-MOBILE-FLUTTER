@@ -214,7 +214,13 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
                 child: Column(
                   children: [
-                    Icon(Icons.account_circle, size: 80, color: Colors.white),
+                    _user != null && _user!['profilePicture'] != null && (_user!['profilePicture'] as String).isNotEmpty
+                        ? CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Colors.white,
+                            backgroundImage: NetworkImage('https://mobile.vaca-meet.fr' + _user!['profilePicture']),
+                          )
+                        : Icon(Icons.account_circle, size: 80, color: Colors.white),
                     const SizedBox(height: 8),
                     Text(
                       _user != null ? (_user!['firstName'] ?? '') : '',
@@ -270,11 +276,17 @@ class _HomePageState extends State<HomePage> {
                 Center(
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 48,
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.account_circle, size: 80, color: Theme.of(context).primaryColor),
-                      ),
+                      _user != null && _user!['profilePicture'] != null && (_user!['profilePicture'] as String).isNotEmpty
+                          ? CircleAvatar(
+                              radius: 48,
+                              backgroundColor: Colors.white,
+                              backgroundImage: NetworkImage('https://mobile.vaca-meet.fr' + _user!['profilePicture']),
+                            )
+                          : CircleAvatar(
+                              radius: 48,
+                              backgroundColor: Colors.white,
+                              child: Icon(Icons.account_circle, size: 80, color: Theme.of(context).primaryColor),
+                            ),
                       const SizedBox(height: 12),
                       Text(
                         _user != null
